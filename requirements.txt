@@ -1,0 +1,7 @@
+discord.py
+mysql-connector-python
+requests
+python-dotenv
+pytest
+pytest-asyncio
+black

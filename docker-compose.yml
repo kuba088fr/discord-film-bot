@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: botdb
+      MYSQL_USER: botuser
+      MYSQL_PASSWORD: botpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  bot:
+    build: .
+    depends_on:
+      - mysql
+    env_file:
+      - .env
+    command: ["python", "src/bot.py"]
+
+volumes:
+  mysql-data:

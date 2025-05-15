@@ -1,0 +1,66 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      build_image:
+        description: 'Build Docker image?'
+        required: false
+        default: 'true'
+      operation:
+        description: 'install | uninstall | reinstall'
+        required: false
+        default: 'reinstall'
+
+env:
+  REGISTRY: ghcr.io/TwojUser
+  IMAGE_NAME: discord-film-bot
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -r requirements.txt pytest black
+      - name: Lint
+        run: black --check .
+      - name: Run tests
+        run: pytest --maxfail=1 --disable-warnings -q
+
+  build:
+    needs: test
+    if: ${{ github.event.inputs.build_image == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build image
+        run: docker build -t $REGISTRY/$IMAGE_NAME:latest .
+      - name: Log in to registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push image
+        run: docker push $REGISTRY/$IMAGE_NAME:latest
+
+  deploy:
+    needs: [ test, build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Choose operation
+        run: echo "Operation = ${{ github.event.inputs.operation }}"
+      - name: Deploy via Docker Compose
+        if: ${{ github.event.inputs.operation == 'reinstall' }}
+        run: |
+          ssh user@server "cd /path/to/project && \
+            docker-compose pull && \
+            docker-compose up -d"
+      # Możesz dodać bloki install/uninstall analogicznie
