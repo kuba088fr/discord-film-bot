@@ -21,16 +21,25 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # dzięki temu src/ będzie widoczne jako moduł
+    env:
+      PYTHONPATH: src
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
       - name: Install deps
-        run: pip install -r requirements.txt pytest black
+        run: |
+          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir pytest pytest-asyncio black
+
       - name: Lint
         run: black --check .
+
       - name: Run tests
         run: pytest --maxfail=1 --disable-warnings -q
 
@@ -40,14 +49,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Build image
         run: docker build -t $REGISTRY/$IMAGE_NAME:latest .
+
       - name: Log in to registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push image
         run: docker push $REGISTRY/$IMAGE_NAME:latest
 
@@ -57,10 +69,23 @@ jobs:
     steps:
       - name: Choose operation
         run: echo "Operation = ${{ github.event.inputs.operation }}"
-      - name: Deploy via Docker Compose
+
+      - name: Install (fresh deploy)
+        if: ${{ github.event.inputs.operation == 'install' }}
+        run: |
+          ssh user@server "cd /path/to/project && \
+            docker-compose up -d"
+
+      - name: Uninstall (teardown)
+        if: ${{ github.event.inputs.operation == 'uninstall' }}
+        run: |
+          ssh user@server "cd /path/to/project && \
+            docker-compose down"
+
+      - name: Reinstall (refresh)
         if: ${{ github.event.inputs.operation == 'reinstall' }}
         run: |
           ssh user@server "cd /path/to/project && \
+            docker-compose down && \
             docker-compose pull && \
             docker-compose up -d"
-      # Możesz dodać bloki install/uninstall analogicznie

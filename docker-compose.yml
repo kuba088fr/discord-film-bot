@@ -15,12 +15,18 @@ services:
       - mysql-data:/var/lib/mysql
 
   bot:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
     depends_on:
       - mysql
     env_file:
       - .env
-    command: ["python", "src/bot.py"]
+    command: ["python", "-m", "src.bot"]
+    # Jeśli chcesz mieć hot-reload lokalnie, możesz odkomentować:
+    # volumes:
+    #   - .:/app
 
 volumes:
   mysql-data:
