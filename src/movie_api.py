@@ -1,10 +1,11 @@
 import os, random, requests
 
-API_KEY  = os.getenv("TMDB_API_KEY")
+API_KEY = os.getenv("TMDB_API_KEY")
 BASE_URL = "https://api.themoviedb.org/3"
 
 # Cache dla listy gatunków – pobieramy tylko raz
 _genre_map: dict[str, int] | None = None
+
 
 def _load_genres() -> dict[str, int]:
     global _genre_map
@@ -18,11 +19,12 @@ def _load_genres() -> dict[str, int]:
         # dodatkowe skróty dla sci-fi
         if "science fiction" in _genre_map:
             _genre_map["sci-fi"] = _genre_map["science fiction"]
-            _genre_map["scifi"]  = _genre_map["science fiction"]
+            _genre_map["scifi"] = _genre_map["science fiction"]
     return _genre_map
 
+
 def get_random_movie(genre_name: str) -> str:
-    genres   = _load_genres()
+    genres = _load_genres()
     genre_id = genres.get(genre_name.lower())
     if not genre_id:
         return (
@@ -37,13 +39,13 @@ def get_random_movie(genre_name: str) -> str:
         "include_adult": False,
         "page": 1,
     }
-    data    = requests.get(f"{BASE_URL}/discover/movie", params=params).json()
+    data = requests.get(f"{BASE_URL}/discover/movie", params=params).json()
     results = data.get("results", [])
     if not results:
-        return f"No results found for genre \"{genre_name}\"."
+        return f'No results found for genre "{genre_name}".'
 
-    film     = random.choice(results)
-    title    = film.get("title", "Unknown")
-    year     = film.get("release_date", "")[:4]
+    film = random.choice(results)
+    title = film.get("title", "Unknown")
+    year = film.get("release_date", "")[:4]
     overview = film.get("overview", "")
     return f"{title} ({year}) – {overview}"
