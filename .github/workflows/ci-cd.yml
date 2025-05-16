@@ -15,7 +15,7 @@ on:
         default: 'reinstall'
 
 env:
-  REGISTRY:       ghcr.io/TwojUser
+  REGISTRY:       ghcr.io/kuba088fr
   IMAGE_NAME:     discord-film-bot
   # sekrety z GitHub Secrets
   DISCORD_TOKEN:   ${{ secrets.DISCORD_TOKEN }}
