@@ -70,17 +70,18 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # Ustawiamy OPERATION: jeśli workflow_dispatch poda `operation`, to ją weźmiemy,
-    # a w pozostałych wypadkach (push) OPERATION='reinstall'
     env:
+      # jeśli workflow_dispatch poda .inputs.operation, to je weź; inaczej 'reinstall'
       OPERATION: ${{ github.event.inputs.operation || 'reinstall' }}
     steps:
       - name: Prepare SSH
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          # usuń CRLF i zapisz klucz
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "$SSH_KNOWN_HOSTS"  > ~/.ssh/known_hosts
+          echo "$SSH_KNOWN_HOSTS"  | tr -d '\r' > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy via SSH
         run: |
