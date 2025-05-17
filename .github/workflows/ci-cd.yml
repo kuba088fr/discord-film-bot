@@ -20,17 +20,17 @@ permissions:
   packages: write
 
 env:
-  REGISTRY:       ghcr.io/kuba088fr
-  IMAGE_NAME:     discord-film-bot
-  DISCORD_TOKEN:  ${{ secrets.DISCORD_TOKEN }}
-  TMDB_API_KEY:   ${{ secrets.TMDB_API_KEY }}
-  MYSQL_HOST:     ${{ secrets.MYSQL_HOST }}
-  MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-  MYSQL_USER:     ${{ secrets.MYSQL_USER }}
-  MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-  AZURE_VM_IP:    ${{ secrets.AZURE_VM_IP }}         # publiczny IP VM
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}   # prywatny klucz do VM
-  SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}    # wynik ssh-keyscan
+  REGISTRY:        ghcr.io/kuba088fr
+  IMAGE_NAME:      discord-film-bot
+  DISCORD_TOKEN:   ${{ secrets.DISCORD_TOKEN }}
+  TMDB_API_KEY:    ${{ secrets.TMDB_API_KEY }}
+  MYSQL_HOST:      ${{ secrets.MYSQL_HOST }}
+  MYSQL_DATABASE:  ${{ secrets.MYSQL_DATABASE }}
+  MYSQL_USER:      ${{ secrets.MYSQL_USER }}
+  MYSQL_PASSWORD:  ${{ secrets.MYSQL_PASSWORD }}
+  AZURE_VM_IP:     ${{ secrets.AZURE_VM_IP }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
 
 jobs:
   test:
@@ -84,7 +84,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          echo "$SSH_KNOWN_HOSTS"  > ~/.ssh/known_hosts
 
       - name: Deploy via SSH
         run: |
@@ -98,12 +98,11 @@ jobs:
                 "cd /home/azureuser/discord-bot && docker-compose down"
               ;;
             reinstall)
-              ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP << 'EOF'
-                cd /home/azureuser/discord-bot
-                docker-compose down
-                docker-compose pull
-                docker-compose up -d
-              EOF
+              ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
+                "cd /home/azureuser/discord-bot && \
+                 docker-compose down && \
+                 docker-compose pull && \
+                 docker-compose up -d"
               ;;
             *)
               echo "Unknown operation: ${{ github.event.inputs.operation }}"
