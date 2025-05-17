@@ -14,22 +14,29 @@ on:
         required: false
         default: 'reinstall'
 
+# uprawnienia tokena GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY:       ghcr.io/kuba088fr
   IMAGE_NAME:     discord-film-bot
-  # sekrety z GitHub Secrets
-  DISCORD_TOKEN:   ${{ secrets.DISCORD_TOKEN }}
-  TMDB_API_KEY:    ${{ secrets.TMDB_API_KEY }}
-  MYSQL_HOST:      ${{ secrets.MYSQL_HOST }}
-  MYSQL_DATABASE:  ${{ secrets.MYSQL_DATABASE }}
-  MYSQL_USER:      ${{ secrets.MYSQL_USER }}
-  MYSQL_PASSWORD:  ${{ secrets.MYSQL_PASSWORD }}
+  DISCORD_TOKEN:  ${{ secrets.DISCORD_TOKEN }}
+  TMDB_API_KEY:   ${{ secrets.TMDB_API_KEY }}
+  MYSQL_HOST:     ${{ secrets.MYSQL_HOST }}
+  MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+  MYSQL_USER:     ${{ secrets.MYSQL_USER }}
+  MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+  AZURE_VM_IP:    ${{ secrets.AZURE_VM_IP }}         # publiczny IP VM
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}   # prywatny klucz do VM
+  SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}    # wynik ssh-keyscan
 
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: src     # dzięki temu 'src/' działa jako moduł
+      PYTHONPATH: src
     steps:
       - uses: actions/checkout@v3
 
@@ -58,7 +65,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t $REGISTRY/$IMAGE_NAME:latest .
 
-      - name: Log in to registry
+      - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -72,8 +79,34 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
       - name: Deploy via SSH
         run: |
-          ssh user@server "cd /path/to/project && \
-            docker-compose pull && \
-            docker-compose up -d"
+          case "${{ github.event.inputs.operation }}" in
+            install)
+              ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
+                "cd /home/azureuser/discord-bot && docker-compose up -d"
+              ;;
+            uninstall)
+              ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
+                "cd /home/azureuser/discord-bot && docker-compose down"
+              ;;
+            reinstall)
+              ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP << 'EOF'
+                cd /home/azureuser/discord-bot
+                docker-compose down
+                docker-compose pull
+                docker-compose up -d
+              EOF
+              ;;
+            *)
+              echo "Unknown operation: ${{ github.event.inputs.operation }}"
+              exit 1
+              ;;
+          esac

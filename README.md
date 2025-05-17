@@ -10,20 +10,20 @@
 ## 📂 Struktura projektu
 
 bot-discord-filmowy/
-├── .env
-├── .gitignore
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-├── README.md
-├── src/
-│   ├── bot.py
-│   ├── db.py
-│   └── movie_api.py
-└── tests/
-    ├── test_db.py
-    ├── test_movie_api.py
-    └── test_bot_commands.py
+├── .env # Twoje lokalne zmienne środowiskowe (gitignore)
+├── .gitignore # Pliki/foldery ignorowane przez Git
+├── docker-compose.yml # Definicja usług: MySQL + bot
+├── Dockerfile # Budowanie obrazu dockera dla bota
+├── requirements.txt # Zależności Pythona
+├── README.md # Ta dokumentacja
+├── src/ # Kod źródłowy
+│ ├── bot.py # Definicja komend i eventów bota
+│ ├── db.py # Obsługa MySQL (init, save, get)
+│ └── movie_api.py # Komunikacja z TMDB, pobieranie rekomendacji
+└── tests/ # Testy jednostkowe
+├── test_db.py
+├── test_movie_api.py
+└── test_bot_commands.py
 
 ## ⚙️ Instalacja i uruchomienie lokalne
 
@@ -54,33 +54,49 @@ Przetestuj komendy na Discordzie:
 
 /hello
 /setfavorite <gatunek>
+/listgenres
+/search <fraza>
 /recommend
+/removefavorite
+/help
 
 
 ✅ Testy
-Projekt zawiera co najmniej trzy testy jednostkowe (w tym jeden z mockiem). Aby je uruchomić, wykonaj:
+Projekt zawiera testy jednostkowe i integracyjne:
+
+test_db.py – sprawdza moduł bazy danych z mockiem MySQL
+test_movie_api.py – weryfikuje pobieranie i cache’owanie gatunków oraz selekcję filmu
+test_bot_commands.py – testuje logikę komend bota z użyciem fixture i mocków
+
+Uruchom wszystkie testy i linter:
+pip install -r requirements.txt pytest pytest-asyncio black
 pytest --maxfail=1 --disable-warnings -q
 black --check .
-pytest – uruchamia testy w folderze tests/.
-
-black --check – weryfikuje zgodność z formatowaniem kodu.
 
 🔄 CI/CD (GitHub Actions)
-W katalogu .github/workflows/ci-cd.yml znajduje się gotowy pipeline:
-
-Testy (pytest + black)
-
-Build (Docker build i opcjonalny push do rejestru)
-
-Deploy (SSH + Docker Compose lub inny sposób)
-
-Pipeline jest wyzwalany przy pushu do gałęzi main lub manualnie przez workflow_dispatch z opcjami:
-
+W katalogu .github/workflows/ci-cd.yml przygotowany jest pipeline:
+test
+checkout kodu
+instalacja zależności
+black --check
+pytest
+build (jeśli testy przeszły)
+docker build
+logowanie do GHCR
+docker push
+deploy (na VM przez SSH)
+docker-compose pull && docker-compose up -d
+Workflow uruchamiany przy pushu do main lub ręcznie (workflow_dispatch) z opcjami:
 build_image: true|false
-
 operation: install|uninstall|reinstall
 
-Sekrety (DISCORD_TOKEN, TMDB_API_KEY) przechowujemy w ustawieniach repozytorium.
+Sekrety w ustawieniach repozytorium (Settings → Secrets and variables):
+DISCORD_TOKEN
+TMDB_API_KEY
+MYSQL_HOST, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD
+CR_PAT (Personal Access Token do GHCR, jeśli używasz PAT zamiast GITHUB_TOKEN)
+AZURE_VM_IP, SSH_PRIVATE_KEY, SSH_KNOWN_HOSTS (do deploya przez SSH)
+
 
 📄 Plik .gitignore
 .gitignore to lista wzorców plików i folderów, których Git nie będzie śledzić. Dzięki temu w repozytorium nie znajdą się:
@@ -97,7 +113,6 @@ artefakty CI/CD
 
 Przykładowa zawartość .gitignore:
 
-gitignore
 # Python
 __pycache__/
 *.py[cod]
@@ -111,5 +126,22 @@ mysql-data/
 .vscode/
 .idea/
 
-# GitHub Actions artifacts
+# GitHub Actions
 .github/actions-artifacts/
+
+📜 Komendy bota
+Komenda	Opis
+/hello	Testowa – czy bot online
+/setfavorite <gatunek>	Ustawia lub aktualizuje ulubiony gatunek
+/removefavorite	Usuwa ulubiony gatunek z bazy
+/listgenres	Wyświetla listę wszystkich dostępnych gatunków
+/search <fraza>	Wyszukuje filmy po tytule (top 5 wyników)
+/recommend	Losowa rekomendacja na podstawie zapisanych preferencji
+/help	Pokazuje tę listę komend i krótki opis
+
+🔒 Bezpieczeństwo
+Sekrety trzymamy w .env lokalnie i w GitHub Secrets – nigdy nie commitujemy tokenów do repozytorium.
+
+Używamy PAT z zakresem write:packages do publikowania obrazów, albo nadajemy packages: write dla GITHUB_TOKEN.
+
+Przy deployu SSH w SSH_KNOWN_HOSTS przechowujemy odcisk serwera, by zapobiec atakom typu MITM.
