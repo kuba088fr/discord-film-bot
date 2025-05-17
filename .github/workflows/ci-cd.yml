@@ -88,18 +88,18 @@ jobs:
           case "$OPERATION" in
             install)
               ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
-                "cd /home/azureuser/discord-bot && docker-compose up -d"
+                "cd /home/azureuser/discord-bot && docker compose up -d"
               ;;
             uninstall)
               ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
-                "cd /home/azureuser/discord-bot && docker-compose down"
+                "cd /home/azureuser/discord-bot && docker compose down"
               ;;
             reinstall)
               ssh -i ~/.ssh/id_ed25519 azureuser@$AZURE_VM_IP \
                 "cd /home/azureuser/discord-bot && \
-                 docker-compose down && \
-                 docker-compose pull && \
-                 docker-compose up -d"
+                 docker compose down && \
+                 docker compose pull && \
+                 docker compose up -d"
               ;;
             *)
               echo "Unknown operation: $OPERATION"
